@@ -1,0 +1,204 @@
+#include <Servo.h>
+
+Servo servoBase;
+Servo servoLid;
+
+int pos = 0;
+int pos1 = 0;
+const int ir1 = 6;
+const int ir2 = 7;
+
+const int ledGreen = 4;
+const int ledYellow = 2;
+const int ledRed = 3;
+
+const int metalRst = 5;
+const int metalDetect = 8;
+
+const int ldr = A0;
+int isGarbage = false;
+int isMetal = false;
+void setup() {
+  Serial.begin(9600);
+  servoBase.attach(9);
+  servoLid.attach(10);
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledYellow, OUTPUT);
+  pinMode(ledRed, OUTPUT);
+  digitalWrite(ledGreen, HIGH);
+  digitalWrite(ledYellow, HIGH);
+  digitalWrite(ledRed, HIGH);
+  pinMode(metalRst, OUTPUT);
+  pinMode(metalDetect, INPUT);
+  pinMode(ldr, INPUT);
+  pinMode(ir1, INPUT);
+  pinMode(ir2, INPUT);
+  delay(100);
+  openLid();
+  servoBase.write(90);
+  digitalWrite(metalRst, HIGH);
+  delay(1000);
+  digitalWrite(metalRst, LOW);
+  delay(1000);
+  digitalWrite(ledGreen, LOW);
+  digitalWrite(ledYellow, LOW);
+  digitalWrite(ledRed, LOW);
+}
+void openLid() {
+  for (pos = 0; pos <= 120; pos += 1) {
+    servoLid.write(pos);
+    delay(15);
+  }
+  for (pos = 120; pos >= 0; pos -= 1) {
+    servoLid.write(pos);
+    delay(15);
+  }
+}
+
+void gotoPos(int newPos) {
+  int posX;
+  if (newPos == 1) {
+    if (pos1 == 40) {
+      //do task
+      pos1 = 40;
+    } else {
+      for (posX = pos1; posX >= 40; posX -= 1) {
+        servoBase.write(posX);
+        delay(15);
+      } pos1 = 40;
+    }
+  }
+  if (newPos == 2) {
+    if (pos1 < 90) {
+      for (posX = pos1; posX <= 90; posX += 1) {
+        servoBase.write(posX);
+        delay(15);
+      }
+      pos1 = 90;
+    }
+
+    if (pos1 > 90) {
+      for (posX = pos1; posX >= 90; posX -= 1) {
+        servoBase.write(posX);
+        delay(15);
+      }
+      pos1 = 90;
+    }
+
+  }
+  if (newPos == 3) {
+    if (pos1 == 160) {
+      //do task
+      pos1 = 160;
+    } else {
+      for (posX = pos1; posX <= 160; posX += 1) {
+        servoBase.write(posX);
+        delay(15);
+      }
+      pos1 = 160;
+    }
+  }
+}
+void loop() {
+  Serial.print("IR1: ");
+  Serial.println(digitalRead(ir1));
+  Serial.print("IR2: ");
+  Serial.println(digitalRead(ir2));
+  Serial.print("LDR: ");
+  Serial.println(analogRead(ldr));
+  Serial.print("METAL: ");
+  Serial.println(digitalRead(metalDetect));
+
+  if (digitalRead(ir1) == 0 | digitalRead(ir2) == 0) {
+    
+    isMetal = false;
+    delay(500);
+    if (digitalRead(metalDetect) == 1) {
+      isMetal = true;
+
+    }
+
+    isGarbage = true;
+
+  }
+  if (isGarbage) {
+    if (isMetal) {
+      //metal
+      Serial.println("METAL");
+      digitalWrite(ledGreen, LOW);
+      digitalWrite(ledYellow, LOW);
+      digitalWrite(ledRed, HIGH);
+      //digitalWrite(metalRst, HIGH);
+      
+
+
+      gotoPos(1);
+     // delay(1000);
+      //digitalWrite(metalRst, LOW);
+      delay(1000);
+      openLid();
+      isGarbage = false;
+      isMetal = false;
+      digitalWrite(ledRed, LOW);
+    } else {
+      if (analogRead(ldr) < 200) {
+        //paper
+        digitalWrite(ledGreen, LOW);
+        digitalWrite(ledYellow, HIGH);
+        digitalWrite(ledRed, LOW);
+        gotoPos(2);
+        delay(1000);
+        openLid();
+        isGarbage = false;
+        Serial.println("PAPER");
+        digitalWrite(ledYellow, LOW);
+      } else {
+        // plastic
+        digitalWrite(ledGreen, HIGH);
+        digitalWrite(ledYellow, LOW);
+        digitalWrite(ledRed, LOW);
+        gotoPos(3);
+        delay(1000);
+        openLid();
+        isGarbage = false;
+        Serial.println("PLASTIC");
+        digitalWrite(ledGreen, LOW);
+      }
+    }
+  }
+  delay(1000);
+}
+void luma() {
+  if (digitalRead(metalDetect) == 1) {
+    //metal
+    Serial.println("METAL");
+    digitalWrite(ledGreen, LOW);
+    digitalWrite(ledYellow, LOW);
+    digitalWrite(ledRed, HIGH);
+    //gotoPos(1);
+    delay(1000);
+    openLid();
+  } else {
+    if (digitalRead(ir1) == 0 | digitalRead(ir2) == 0) {
+      if (analogRead(ldr) < 200) {
+        //paper
+        digitalWrite(ledGreen, LOW);
+        digitalWrite(ledYellow, HIGH);
+        digitalWrite(ledRed, LOW);
+        //gotoPos(2);
+        delay(1000);
+        openLid();
+        Serial.println("PAPER");
+      } else {
+        // plastic
+        digitalWrite(ledGreen, HIGH);
+        digitalWrite(ledYellow, LOW);
+        digitalWrite(ledRed, LOW);
+        // gotoPos(3);
+        delay(1000);
+        openLid();
+        Serial.println("PLASTIC");
+      }
+    }
+  }
+}
